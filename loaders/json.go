@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"apodeiktikos.com/fbtest/core"
+	"github.com/ukoelguanche/graphicsengine/core"
 )
 
 func LoadJson(path string, sprites *core.Sprites) {

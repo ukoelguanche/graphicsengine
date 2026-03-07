@@ -1,9 +1,9 @@
-package loaders
+c
 
 import (
 	"log"
 
-	"apodeiktikos.com/fbtest/core"
+	"github.com/ukoelguanche/graphicsengine/core"
 )
 
 func LoadSprites(definitionPath string, sprites *core.Sprites) {

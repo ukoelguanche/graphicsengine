@@ -1,7 +1,7 @@
 package drivers
 
 import (
-	"apodeiktikos.com/fbtest/core"
+	"github.com/ukoelguanche/graphicsengine/core"
 )
 
 const (
