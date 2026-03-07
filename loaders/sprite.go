@@ -1,4 +1,4 @@
-c..
+package loaders
 
 import (
 	"log"
