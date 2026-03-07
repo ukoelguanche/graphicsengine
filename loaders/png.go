@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"apodeiktikos.com/fbtest/core"
+	"github.com/ukoelguanche/graphicsengine/core"
 )
 
 func LoadBitmap(path string) *core.Bitmap {
