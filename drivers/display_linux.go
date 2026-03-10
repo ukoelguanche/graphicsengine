@@ -36,7 +36,7 @@ type Display struct {
 	VW, VH     int // <--- Y esto
 }
 
-func InitDisplay(vw, vh int) *Display {
+func InitDisplay(title string, vw, vh int) *Display {
 
 	exec.Command("stty", "-F", "/dev/tty", "-echo", "-icanon").Run()
 	fmt.Print("\033[?25l")
@@ -47,8 +47,7 @@ func InitDisplay(vw, vh int) *Display {
 		panic(err)
 	}
 
-	// OBTENER LINE LENGTH REAL
-	// Esto evita que la imagen se vea "hacia un lado" o "torcida"
+	// Get actual line length to avoid tilted or off-centered images
 	var fixInfo struct {
 		id                            [16]byte
 		smem_start                    uintptr
@@ -57,13 +56,13 @@ func InitDisplay(vw, vh int) *Display {
 		type_aux                      uint32
 		visual                        uint32
 		xpanstep, ypanstep, ywrapstep uint16
-		line_length                   uint32 // Este es el que nos importa
+		line_length                   uint32 // the important one
 	}
 	// FBIOGET_FSCREENINFO = 0x4602
 	syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), 0x4602, uintptr(unsafe.Pointer(&fixInfo)))
 
 	lineLen := int(fixInfo.line_length)
-	size := lineLen * sh // Tamaño real de la memoria de video
+	size := lineLen * sh // Real video memory size
 
 	data, _ := syscall.Mmap(int(f.Fd()), 0, size, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	backBuffer := make([]byte, size)
@@ -98,13 +97,13 @@ func getDisplaySize() (int, int) {
 }
 
 func (d *Display) DrawPixel(vx, vy int32, c []byte) {
-	// Usamos las constantes o variables VW y VH que tengas definidas
+	// Use the constants or variables VW and VH that you have defined
 	if vx < 0 || vx >= int32(VW) || vy < 0 || vy >= int32(VH) {
 		return
 	}
 
-	// Proyección dinámica: calculamos el área real que ocupa el píxel virtual
-	// Esto reparte los píxeles sobrantes automáticamente
+	// Dynamic projection: we calculate the real area occupied by the virtual pixel
+	// This automatically distributes the remaining pixels
 	xStart := int(float64(vx) * float64(sw) / float64(VW))
 	xEnd := int(float64(vx+1) * float64(sw) / float64(VW))
 
@@ -113,7 +112,7 @@ func (d *Display) DrawPixel(vx, vy int32, c []byte) {
 
 	r, g, b, a := c[0], c[1], c[2], c[3]
 
-	// Dibujamos el bloque estirado
+	// Draw the stretched block
 	for py := yStart; py < yEnd; py++ {
 		for px := xStart; px < xEnd; px++ {
 			// Importante: No olvides que si Alpine usa LineLength,

@@ -20,13 +20,13 @@ type Display struct {
 	pixels   []byte
 }
 
-func InitDisplay(vw, vh int) *Display {
+func InitDisplay(title string, vw, vh int) *Display {
 	//sw, sh := getDisplaySize()
-	sw, sh := 640, 480
+	sw, sh := 800, 600
 	log.Printf("Detected resolution: %dx%d", sw, sh)
 
 	sdl.Init(sdl.INIT_EVERYTHING)
-	w, _ := sdl.CreateWindow("framebuffer", 100, 100, int32(sw), int32(sh), sdl.WINDOW_SHOWN)
+	w, _ := sdl.CreateWindow(title, 100, 100, int32(sw), int32(sh), sdl.WINDOW_SHOWN)
 	r, _ := sdl.CreateRenderer(w, -1, sdl.RENDERER_ACCELERATED)
 	t, _ := r.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, int32(vw), int32(vh))
 	return &Display{w, r, t, make([]byte, vw*vh*4)}

@@ -6,21 +6,47 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	"time"
 )
 
 type Keyboard struct {
 	keyboardFile *os.File
 }
 
-func InitKeyboard() *Keyboard {
-	kbdPath := findKeyboardDevice()
-	keyboardFile, err := os.OpenFile(kbdPath, os.O_RDONLY|syscall.O_NONBLOCK, 0)
-	if err != nil {
-		log.Fatalf("Failed to open keyboard file: %s", err)
-	}
-	log.Printf("Keyboard file is: %s", kbdPath)
+func InitKeyboard() {
+	GlobalKeyboard = &Keyboard{}
 
-	return &Keyboard{keyboardFile: keyboardFile}
+	go func() {
+		GlobalKeyboard.TryConnect()
+
+		ticker := time.NewTicker(2 * time.Second) // Reintentar cada 2 segundos
+		for range ticker.C {
+			if GlobalKeyboard.keyboardFile == nil {
+				log.Println("Searching for keyboard...")
+				GlobalKeyboard.TryConnect()
+			} else {
+				// Optional: Verify if the file is still alive
+				// If the keyboard is disconnected, reads will fail
+				// and should do: GlobalKeyboard.keyboardFile = nil
+			}
+		}
+	}()
+}
+
+func (k *Keyboard) TryConnect() bool {
+	kbdPath := findKeyboardDevice()
+	if kbdPath == "" {
+		return false
+	}
+
+	file, err := os.OpenFile(kbdPath, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return false
+	}
+
+	k.keyboardFile = file
+	log.Printf("Keyboard connected: %s", kbdPath)
+	return true
 }
 
 func (k *Keyboard) GetInput() KeyboardInput {
@@ -49,7 +75,7 @@ func (k *Keyboard) GetInput() KeyboardInput {
 					return KBD_ESCAPE
 				case 28:
 					return KBD_RETURN
-				case 75:
+				case 57:
 					return KBD_SPACE
 				case 103:
 					return KBD_UP

@@ -10,7 +10,7 @@ const (
 
 var GlobalDisplay *Display
 
-func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Rect, position core.Point) {
+func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position core.Point) {
 	bitmap := sprite.GetBitmap()
 	for sy := 0; sy < int(rect.Size.H); sy++ {
 		for sx := 0; sx < int(rect.Size.W); sx++ {

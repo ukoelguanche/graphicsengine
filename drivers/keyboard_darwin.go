@@ -7,8 +7,8 @@ import (
 type Keyboard struct {
 }
 
-func InitKeyboard() *Keyboard {
-	return &Keyboard{}
+func InitKeyboard() {
+	GlobalKeyboard = &Keyboard{}
 }
 
 func (k *Keyboard) GetInput() KeyboardInput {
