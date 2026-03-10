@@ -58,6 +58,11 @@ func (k *Keyboard) GetInput() KeyboardInput {
 	n, err := syscall.Read(int(k.keyboardFile.Fd()), buffer)
 
 	if err != nil || n < 24 {
+		if err != syscall.EAGAIN && err != syscall.EWOULDBLOCK {
+			log.Print("Keyboard Disconnected")
+			k.keyboardFile.Close()
+			k.keyboardFile = nil
+		}
 		return KBD_NONE
 	}
 
