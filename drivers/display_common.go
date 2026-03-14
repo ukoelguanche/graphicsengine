@@ -4,11 +4,20 @@ import (
 	"github.com/ukoelguanche/graphicsengine/core"
 )
 
+type PixelTransformer interface {
+	Transform(pixels []byte)
+}
+
+type SpriteColorProcessor interface {
+	ProcessColor(color []byte) []byte
+}
+
 const (
 	VW, VH = 320, 200
 )
 
 var GlobalDisplay *Display
+var SpriteColorProcessors []SpriteColorProcessor = make([]SpriteColorProcessor, 0)
 
 func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position core.Point) {
 	bitmap := sprite.GetBitmap()
@@ -31,9 +40,11 @@ func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position 
 				continue
 			}
 
-			finalColor := sprite.ProcessColor(color)
+			for _, processor := range SpriteColorProcessors {
+				color = processor.ProcessColor(color)
+			}
 
-			d.DrawPixel(int32(position.X)+int32(sx), int32(position.Y)+int32(sy), finalColor)
+			d.DrawPixel(int32(position.X)+int32(sx), int32(position.Y)+int32(sy), color)
 		}
 	}
 
@@ -41,4 +52,8 @@ func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position 
 		sprite.CurrentPalleteSwapPosition = 0
 	}
 	sprite.CurrentPalleteSwapPosition += sprite.CurrentPalleteSwapOffset
+}
+
+func (d *Display) AddTransformer(t PixelTransformer) {
+	d.transformers = append(d.transformers, t)
 }

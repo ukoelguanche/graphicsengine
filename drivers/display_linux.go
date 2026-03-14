@@ -29,11 +29,12 @@ var sw, sh int
 var oldState *term.State
 
 type Display struct {
-	file       *os.File
-	pixels     []byte
-	buffer     []byte
-	LineLength int // <--- Añade esto
-	VW, VH     int // <--- Y esto
+	file         *os.File
+	pixels       []byte
+	buffer       []byte
+	LineLength   int
+	VW, VH       int
+	transformers []PixelTransformer
 }
 
 func InitDisplay(title string, vw, vh int) *Display {
@@ -75,12 +76,13 @@ func InitDisplay(title string, vw, vh int) *Display {
 	}
 
 	return &Display{
-		file:       f,
-		pixels:     data,
-		buffer:     backBuffer,
-		LineLength: lineLen,
-		VW:         vw,
-		VH:         vh,
+		file:         f,
+		pixels:       data,
+		buffer:       backBuffer,
+		LineLength:   lineLen,
+		VW:           vw,
+		VH:           vh,
+		transformers: make([]PixelTransformer, 0),
 	}
 }
 func getDisplaySize() (int, int) {
@@ -144,6 +146,10 @@ func (d *Display) ClearFinal() {
 
 func (d *Display) Present() {
 	copy(d.pixels, d.buffer)
+
+	for _, transformer := range d.transformers {
+		transformer.Transform(d.pixels)
+	}
 }
 
 func (d *Display) Close() {

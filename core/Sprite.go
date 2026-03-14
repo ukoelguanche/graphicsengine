@@ -27,14 +27,3 @@ func (s *Sprite) GetFrame(index int32) Frame { return s.Frames[index] }
 func (s *Sprite) CurrentSwapPaletteIndex() int {
 	return int(float32(len(*s.PaletteSwap.TargetPalette)) * s.CurrentPalleteSwapPosition)
 }
-
-func (s *Sprite) ProcessColor(color []byte) []byte {
-	if s.PaletteSwap.TargetPalette == nil {
-		return color
-	}
-
-	index := s.CurrentSwapPaletteIndex()
-	color = s.PaletteSwap.SourcePalette.ReplacePalette(color, s.PaletteSwap.TargetPalette, index)
-
-	return color
-}

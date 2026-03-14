@@ -18,6 +18,6 @@ func (p Palette) ReplacePalette(color []byte, targetPalette *Palette, animationI
 	if gradientIndex >= 0 {
 		return (*targetPalette)[(gradientIndex+animationIndex)%len(*targetPalette)].Byte()
 	}
-	
+
 	return color
 }

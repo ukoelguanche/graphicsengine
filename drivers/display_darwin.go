@@ -14,14 +14,15 @@ import (
 )
 
 type Display struct {
-	window   *sdl.Window
-	renderer *sdl.Renderer
-	tex      *sdl.Texture
-	pixels   []byte
+	window       *sdl.Window
+	renderer     *sdl.Renderer
+	tex          *sdl.Texture
+	pixels       []byte
+	buffer       []byte
+	transformers []PixelTransformer
 }
 
 func InitDisplay(title string, vw, vh int) *Display {
-	//sw, sh := getDisplaySize()
 	sw, sh := 800, 600
 	log.Printf("Detected resolution: %dx%d", sw, sh)
 
@@ -29,7 +30,14 @@ func InitDisplay(title string, vw, vh int) *Display {
 	w, _ := sdl.CreateWindow(title, 100, 100, int32(sw), int32(sh), sdl.WINDOW_SHOWN)
 	r, _ := sdl.CreateRenderer(w, -1, sdl.RENDERER_ACCELERATED)
 	t, _ := r.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, int32(vw), int32(vh))
-	return &Display{w, r, t, make([]byte, vw*vh*4)}
+
+	return &Display{
+		window:       w,
+		renderer:     r,
+		tex:          t,
+		pixels:       make([]byte, vw*vh*4),
+		transformers: make([]PixelTransformer, 0),
+	}
 }
 
 func getDisplaySize() (int, int) {
@@ -56,6 +64,13 @@ func (d *Display) Clear() {
 }
 
 func (d *Display) Present() {
+	copy(d.pixels, d.buffer)
+
+	for _, transformer := range d.transformers {
+		transformer.Transform(d.pixels)
+	}
+
+	// 3. Renderizamos (usando d.pixels ya transformados)
 	d.tex.Update(nil, unsafe.Pointer(&d.pixels[0]), VW*4)
 	d.renderer.Copy(d.tex, nil, nil)
 	d.renderer.Present()
