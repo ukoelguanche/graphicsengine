@@ -23,7 +23,7 @@ type Display struct {
 }
 
 func InitDisplay(title string, vw, vh int) *Display {
-	sw, sh := 800, 600
+	sw, sh := 960, 600
 	log.Printf("Detected resolution: %dx%d", sw, sh)
 
 	sdl.Init(sdl.INIT_EVERYTHING)

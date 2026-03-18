@@ -2,6 +2,11 @@ package drivers
 
 import "fmt"
 
+type KeyboardEventsHandler interface {
+	OnKeyboardLost()
+	OnKeyboardPlugged()
+}
+
 var GlobalKeyboard *Keyboard
 
 type KeyboardInput int

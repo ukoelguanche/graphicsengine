@@ -5,6 +5,7 @@ import (
 )
 
 type Keyboard struct {
+	EventsHandler KeyboardEventsHandler
 }
 
 func InitKeyboard() {

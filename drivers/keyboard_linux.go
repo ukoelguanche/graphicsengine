@@ -2,7 +2,6 @@ package drivers
 
 import (
 	"encoding/binary"
-	"log"
 	"os"
 	"strings"
 	"syscall"
@@ -10,7 +9,8 @@ import (
 )
 
 type Keyboard struct {
-	keyboardFile *os.File
+	keyboardFile  *os.File
+	EventsHandler KeyboardEventsHandler
 }
 
 func InitKeyboard() {
@@ -22,7 +22,9 @@ func InitKeyboard() {
 		ticker := time.NewTicker(2 * time.Second) // Reintentar cada 2 segundos
 		for range ticker.C {
 			if GlobalKeyboard.keyboardFile == nil {
-				log.Println("Searching for keyboard...")
+				if GlobalKeyboard.EventsHandler != nil {
+					GlobalKeyboard.EventsHandler.OnKeyboardLost()
+				}
 				GlobalKeyboard.TryConnect()
 			} else {
 				// Optional: Verify if the file is still alive
@@ -45,7 +47,9 @@ func (k *Keyboard) TryConnect() bool {
 	}
 
 	k.keyboardFile = file
-	log.Printf("Keyboard connected: %s", kbdPath)
+	if GlobalKeyboard.EventsHandler != nil {
+		GlobalKeyboard.EventsHandler.OnKeyboardPlugged()
+	}
 	return true
 }
 
@@ -59,7 +63,9 @@ func (k *Keyboard) GetInput() KeyboardInput {
 
 	if err != nil || n < 24 {
 		if err != syscall.EAGAIN && err != syscall.EWOULDBLOCK {
-			log.Print("Keyboard Disconnected")
+			if GlobalKeyboard.EventsHandler != nil {
+				GlobalKeyboard.EventsHandler.OnKeyboardLost()
+			}
 			k.keyboardFile.Close()
 			k.keyboardFile = nil
 		}
@@ -105,7 +111,7 @@ func (k *Keyboard) GetInput() KeyboardInput {
 func findKeyboardDevice() string {
 	data, err := os.ReadFile("/proc/bus/input/devices")
 	if err != nil {
-		log.Printf("error reading /proc/bus/input/devices: %v. Keyboard not found", err)
+		GlobalKeyboard.EventsHandler.OnKeyboardLost()
 		return ""
 	}
 
