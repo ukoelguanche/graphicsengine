@@ -123,13 +123,6 @@ func (d *Display) Clear() {
 	}
 }
 
-func (d *Display) ClearFinal() {
-	log.Printf("CLEARING display")
-	for i := range d.pixels {
-		d.pixels[i] = 0
-	}
-}
-
 func (d *Display) Present() {
 	for _, transformer := range d.transformers {
 		transformer.Transform(d.buffer)
@@ -154,8 +147,6 @@ func (d *Display) Close() {
 	if oldState != nil {
 		term.Restore(int(os.Stdin.Fd()), oldState)
 	}
-
-	syscall.Munmap(d.pixels)
 }
 
 func (d *Display) SaveBaseBuffer() {

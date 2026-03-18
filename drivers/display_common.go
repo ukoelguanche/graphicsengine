@@ -33,65 +33,54 @@ func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position 
 	width := int(rect.Size.W)
 	height := int(rect.Size.H)
 
-	// Skip fully transparent sprites or rectangles
 	if width <= 0 || height <= 0 {
 		return
 	}
 
-	// Skip drawing if the rectangle is completely outside the viewport
 	if drawX >= VW || drawY >= VH || drawX+width <= 0 || drawY+height <= 0 {
 		return
 	}
 
-	// Adjust source and destination coordinates to handle clipping against the viewport
 	if srcX0 < 0 {
 		drawX -= srcX0
 		width += srcX0
 		srcX0 = 0
 	}
 
-	// Adjust source and destination coordinates to handle clipping against the viewport
 	if srcY0 < 0 {
 		drawY -= srcY0
 		height += srcY0
 		srcY0 = 0
 	}
 
-	// Adjust source and destination coordinates to handle clipping against the bitmap boundaries
 	if srcX0+width > int(bitmap.W) {
 		width = int(bitmap.W) - srcX0
 	}
 
-	// Adjust source and destination coordinates to handle clipping against the bitmap boundaries
 	if srcY0+height > int(bitmap.H) {
 		height = int(bitmap.H) - srcY0
 	}
 
-	// Adjust source and destination coordinates to handle clipping against the viewport
 	if drawX < 0 {
 		srcX0 -= drawX
 		width += drawX
 		drawX = 0
 	}
 
-	// Adjust source and destination coordinates to handle clipping against the viewport
 	if drawY < 0 {
 		srcY0 -= drawY
 		height += drawY
 		drawY = 0
 	}
 
-	// Adjust source and destination coordinates to handle clipping against the viewport
 	if drawX+width > VW {
 		width = VW - drawX
 	}
 
-	// Adjust source and destination coordinates to handle clipping against the viewport
 	if drawY+height > VH {
 		height = VH - drawY
 	}
 
-	//
 	if width <= 0 || height <= 0 {
 		return
 	}

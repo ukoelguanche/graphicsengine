@@ -56,12 +56,12 @@ func (d *Display) DrawPixel(x, y int32, c []byte) {
 	}
 
 	offset := (y*VW + x) * 4
-	copy(d.pixels[offset:offset+4], c)
+	copy(d.buffer[offset:offset+4], c)
 }
 
 func (d *Display) Clear() {
-	for i := range d.pixels {
-		d.pixels[i] = 0
+	for i := range d.buffer {
+		d.buffer[i] = 0
 	}
 }
 
@@ -80,6 +80,7 @@ func (d *Display) Present() {
 
 func (d *Display) Close() {
 	d.Clear()
+	copy(d.pixels, d.buffer)
 	d.window.Destroy()
 	sdl.Quit()
 }
