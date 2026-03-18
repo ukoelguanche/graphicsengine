@@ -12,6 +12,11 @@ type SpriteColorProcessor interface {
 	ProcessColor(color []byte) []byte
 }
 
+type SpriteScopedColorProcessor interface {
+	SpriteColorProcessor
+	AppliesTo(sprite *core.Sprite) bool
+}
+
 const (
 	VW, VH = 320, 200
 )
@@ -21,30 +26,97 @@ var SpriteColorProcessors []SpriteColorProcessor = make([]SpriteColorProcessor, 
 
 func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position core.Point) {
 	bitmap := sprite.GetBitmap()
-	for sy := 0; sy < int(rect.Size.H); sy++ {
-		for sx := 0; sx < int(rect.Size.W); sx++ {
-			// Calculate original position inside bitmap
-			origX := rect.Point.X + float64(sx)
-			origY := rect.Point.Y + float64(sy)
+	drawX := int(position.X)
+	drawY := int(position.Y)
+	srcX0 := int(rect.Point.X)
+	srcY0 := int(rect.Point.Y)
+	width := int(rect.Size.W)
+	height := int(rect.Size.H)
 
-			// Avoid drawing outside bounds
-			if origX < 0 || origX >= float64(bitmap.W) || origY < 0 || origY >= float64(bitmap.H) {
-				continue
-			}
+	// Skip fully transparent sprites or rectangles
+	if width <= 0 || height <= 0 {
+		return
+	}
 
-			srcOff := int((origY*float64(bitmap.W) + origX) * 4)
+	// Skip drawing if the rectangle is completely outside the viewport
+	if drawX >= VW || drawY >= VH || drawX+width <= 0 || drawY+height <= 0 {
+		return
+	}
+
+	// Adjust source and destination coordinates to handle clipping against the viewport
+	if srcX0 < 0 {
+		drawX -= srcX0
+		width += srcX0
+		srcX0 = 0
+	}
+
+	// Adjust source and destination coordinates to handle clipping against the viewport
+	if srcY0 < 0 {
+		drawY -= srcY0
+		height += srcY0
+		srcY0 = 0
+	}
+
+	// Adjust source and destination coordinates to handle clipping against the bitmap boundaries
+	if srcX0+width > int(bitmap.W) {
+		width = int(bitmap.W) - srcX0
+	}
+
+	// Adjust source and destination coordinates to handle clipping against the bitmap boundaries
+	if srcY0+height > int(bitmap.H) {
+		height = int(bitmap.H) - srcY0
+	}
+
+	// Adjust source and destination coordinates to handle clipping against the viewport
+	if drawX < 0 {
+		srcX0 -= drawX
+		width += drawX
+		drawX = 0
+	}
+
+	// Adjust source and destination coordinates to handle clipping against the viewport
+	if drawY < 0 {
+		srcY0 -= drawY
+		height += drawY
+		drawY = 0
+	}
+
+	// Adjust source and destination coordinates to handle clipping against the viewport
+	if drawX+width > VW {
+		width = VW - drawX
+	}
+
+	// Adjust source and destination coordinates to handle clipping against the viewport
+	if drawY+height > VH {
+		height = VH - drawY
+	}
+
+	//
+	if width <= 0 || height <= 0 {
+		return
+	}
+
+	processors := applicableProcessors(sprite)
+
+	for sy := 0; sy < height; sy++ {
+		srcRowOffset := ((srcY0 + sy) * int(bitmap.W) * 4) + srcX0*4
+		dstY := drawY + sy
+
+		for sx := 0; sx < width; sx++ {
+			srcOff := srcRowOffset + sx*4
 			color := bitmap.Pixels[srcOff : srcOff+4]
 
-			// Skip transparencies
 			if color[3] < 128 {
 				continue
 			}
 
-			for _, processor := range SpriteColorProcessors {
-				color = processor.ProcessColor(color)
+			if len(processors) > 0 {
+				for _, processor := range processors {
+					color = processor.ProcessColor(color)
+				}
 			}
 
-			d.DrawPixel(int32(position.X)+int32(sx), int32(position.Y)+int32(sy), color)
+			d.DrawPixel(int32(drawX+sx), int32(dstY), color)
 		}
 	}
 
@@ -56,4 +128,21 @@ func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position 
 
 func (d *Display) AddTransformer(t PixelTransformer) {
 	d.transformers = append(d.transformers, t)
+}
+
+func applicableProcessors(sprite *core.Sprite) []SpriteColorProcessor {
+	if len(SpriteColorProcessors) == 0 {
+		return nil
+	}
+
+	processors := make([]SpriteColorProcessor, 0, len(SpriteColorProcessors))
+	for _, processor := range SpriteColorProcessors {
+		scoped, ok := processor.(SpriteScopedColorProcessor)
+		if ok && !scoped.AppliesTo(sprite) {
+			continue
+		}
+		processors = append(processors, processor)
+	}
+
+	return processors
 }
