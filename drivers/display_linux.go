@@ -66,7 +66,6 @@ func InitDisplay(title string, vw, vh int) *Display {
 	size := lineLen * sh // Real video memory size
 
 	data, _ := syscall.Mmap(int(f.Fd()), 0, size, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
-	backBuffer := make([]byte, size)
 
 	fd := int(os.Stdin.Fd())
 
@@ -78,7 +77,7 @@ func InitDisplay(title string, vw, vh int) *Display {
 	return &Display{
 		file:         f,
 		pixels:       data,
-		buffer:       backBuffer,
+		buffer:       make([]byte, vw*vh*4),
 		LineLength:   lineLen,
 		VW:           vw,
 		VH:           vh,
@@ -99,36 +98,12 @@ func getDisplaySize() (int, int) {
 }
 
 func (d *Display) DrawPixel(vx, vy int32, c []byte) {
-	// Use the constants or variables VW and VH that you have defined
 	if vx < 0 || vx >= int32(VW) || vy < 0 || vy >= int32(VH) {
 		return
 	}
 
-	// Dynamic projection: we calculate the real area occupied by the virtual pixel
-	// This automatically distributes the remaining pixels
-	xStart := int(float64(vx) * float64(sw) / float64(VW))
-	xEnd := int(float64(vx+1) * float64(sw) / float64(VW))
-
-	yStart := int(float64(vy) * float64(sh) / float64(VH))
-	yEnd := int(float64(vy+1) * float64(sh) / float64(VH))
-
-	r, g, b, a := c[0], c[1], c[2], c[3]
-
-	// Draw the stretched block
-	for py := yStart; py < yEnd; py++ {
-		for px := xStart; px < xEnd; px++ {
-			// Importante: No olvides que si Alpine usa LineLength,
-			// deberías usar d.LineLength en lugar de sw aquí.
-			offset := (py*sw + px) * 4
-
-			if offset+3 < len(d.buffer) {
-				d.buffer[offset] = b
-				d.buffer[offset+1] = g
-				d.buffer[offset+2] = r
-				d.buffer[offset+3] = a
-			}
-		}
-	}
+	offset := (int(vy)*d.VW + int(vx)) * 4
+	copy(d.buffer[offset:offset+4], c)
 }
 
 func (d *Display) Clear() {
@@ -139,17 +114,17 @@ func (d *Display) Clear() {
 
 func (d *Display) ClearFinal() {
 	log.Printf("CLEARING display")
-	for i := range d.buffer {
-		d.buffer[i] = 0
+	for i := range d.pixels {
+		d.pixels[i] = 0
 	}
 }
 
 func (d *Display) Present() {
-	copy(d.pixels, d.buffer)
-
 	for _, transformer := range d.transformers {
-		transformer.Transform(d.pixels)
+		transformer.Transform(d.buffer)
 	}
+
+	d.scaleVirtualBuffer()
 }
 
 func (d *Display) Close() {
@@ -170,4 +145,37 @@ func (d *Display) Close() {
 	}
 
 	syscall.Munmap(d.pixels)
+}
+
+func (d *Display) scaleVirtualBuffer() {
+	for vy := 0; vy < d.VH; vy++ {
+		yStart := vy * sh / d.VH
+		yEnd := (vy + 1) * sh / d.VH
+
+		for vx := 0; vx < d.VW; vx++ {
+			xStart := vx * sw / d.VW
+			xEnd := (vx + 1) * sw / d.VW
+
+			srcOffset := (vy*d.VW + vx) * 4
+			r := d.buffer[srcOffset]
+			g := d.buffer[srcOffset+1]
+			b := d.buffer[srcOffset+2]
+			a := d.buffer[srcOffset+3]
+
+			for py := yStart; py < yEnd; py++ {
+				rowOffset := py * d.LineLength
+				for px := xStart; px < xEnd; px++ {
+					dstOffset := rowOffset + px*4
+					if dstOffset+3 >= len(d.pixels) {
+						continue
+					}
+
+					d.pixels[dstOffset] = b
+					d.pixels[dstOffset+1] = g
+					d.pixels[dstOffset+2] = r
+					d.pixels[dstOffset+3] = a
+				}
+			}
+		}
+	}
 }
