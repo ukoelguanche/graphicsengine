@@ -32,6 +32,7 @@ type Display struct {
 	file         *os.File
 	pixels       []byte
 	buffer       []byte
+	baseBuffer   []byte
 	scaledRow    []byte
 	LineLength   int
 	VW, VH       int
@@ -155,6 +156,19 @@ func (d *Display) Close() {
 	}
 
 	syscall.Munmap(d.pixels)
+}
+
+func (d *Display) SaveBaseBuffer() {
+	d.baseBuffer = make([]byte, len(d.buffer))
+	copy(d.baseBuffer, d.buffer)
+}
+
+func (d *Display) RestoreBaseBuffer() bool {
+	if len(d.baseBuffer) == 0 {
+		return false
+	}
+	copy(d.buffer, d.baseBuffer)
+	return true
 }
 
 func (d *Display) scaleVirtualBuffer() {

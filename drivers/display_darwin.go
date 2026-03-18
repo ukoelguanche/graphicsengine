@@ -19,6 +19,7 @@ type Display struct {
 	tex          *sdl.Texture
 	pixels       []byte
 	buffer       []byte
+	baseBuffer   []byte
 	transformers []PixelTransformer
 }
 
@@ -36,6 +37,7 @@ func InitDisplay(title string, vw, vh int) *Display {
 		renderer:     r,
 		tex:          t,
 		pixels:       make([]byte, vw*vh*4),
+		buffer:       make([]byte, vw*vh*4),
 		transformers: make([]PixelTransformer, 0),
 	}
 }
@@ -80,4 +82,17 @@ func (d *Display) Close() {
 	d.Clear()
 	d.window.Destroy()
 	sdl.Quit()
+}
+
+func (d *Display) SaveBaseBuffer() {
+	d.baseBuffer = make([]byte, len(d.buffer))
+	copy(d.baseBuffer, d.buffer)
+}
+
+func (d *Display) RestoreBaseBuffer() bool {
+	if len(d.baseBuffer) == 0 {
+		return false
+	}
+	copy(d.buffer, d.baseBuffer)
+	return true
 }
