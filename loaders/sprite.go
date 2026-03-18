@@ -36,7 +36,51 @@ func LoadSprites(definitionPath string, sprites *core.Sprites) {
 
 			sprite.CurrentPalleteSwapOffset = 1 / float32(len(*sprite.PaletteSwap.TargetPalette)) * sprite.RelativePaletteSwapSpeed
 			sprite.CurrentPalleteSwapPosition = 0.0
+			sprite.PaletteBitmaps = buildPaletteBitmaps(sprite)
 		}
 
 	}
+}
+
+func buildPaletteBitmaps(sprite *core.Sprite) []*core.Bitmap {
+	if sprite.Bitmap == nil || sprite.PaletteSwap.SourcePalette == nil || sprite.PaletteSwap.TargetPalette == nil {
+		return nil
+	}
+
+	targetPalette := *sprite.PaletteSwap.TargetPalette
+	if len(targetPalette) == 0 {
+		return nil
+	}
+
+	bitmaps := make([]*core.Bitmap, len(targetPalette))
+	for animationIndex := range targetPalette {
+		pixels := make([]byte, len(sprite.Bitmap.Pixels))
+		copy(pixels, sprite.Bitmap.Pixels)
+
+		for i := 0; i < len(pixels); i += 4 {
+			if pixels[i+3] < 128 {
+				continue
+			}
+
+			gradientIndex := sprite.PaletteSwap.SourcePalette.GradientIndex(pixels[i : i+4])
+			if gradientIndex < 0 {
+				continue
+			}
+
+			targetColor := targetPalette[(gradientIndex+animationIndex)%len(targetPalette)]
+			pixels[i] = targetColor.R
+			pixels[i+1] = targetColor.G
+			pixels[i+2] = targetColor.B
+			pixels[i+3] = targetColor.A
+		}
+
+		bitmaps[animationIndex] = &core.Bitmap{
+			Name:   sprite.Bitmap.Name,
+			W:      sprite.Bitmap.W,
+			H:      sprite.Bitmap.H,
+			Pixels: pixels,
+		}
+	}
+
+	return bitmaps
 }

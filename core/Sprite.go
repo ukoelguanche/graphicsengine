@@ -4,6 +4,7 @@ type Sprite struct {
 	Name         string
 	BitmapSource string `json:"BitmapSource"`
 	Bitmap       *Bitmap
+	PaletteBitmaps []*Bitmap
 	Frames       []Frame             `json:"Frames"`
 	Sequences    map[string]Sequence `json:"Sequences"`
 	// ToDO: Remove this property as it is intended to be used for texts, not for sprites
@@ -21,9 +22,23 @@ type Sprites struct {
 	Palettes      map[string]*Palette `json:"Palettes"`
 }
 
-func (s *Sprite) GetBitmap() *Bitmap         { return s.Bitmap }
+func (s *Sprite) GetBitmap() *Bitmap {
+	if len(s.PaletteBitmaps) == 0 {
+		return s.Bitmap
+	}
+
+	index := s.CurrentSwapPaletteIndex()
+	if index < 0 || index >= len(s.PaletteBitmaps) {
+		return s.Bitmap
+	}
+
+	return s.PaletteBitmaps[index]
+}
 func (s *Sprite) GetFrame(index int32) Frame { return s.Frames[index] }
 
 func (s *Sprite) CurrentSwapPaletteIndex() int {
+	if s.PaletteSwap.TargetPalette == nil || len(*s.PaletteSwap.TargetPalette) == 0 {
+		return 0
+	}
 	return int(float32(len(*s.PaletteSwap.TargetPalette)) * s.CurrentPalleteSwapPosition)
 }
