@@ -32,6 +32,7 @@ type Display struct {
 	file         *os.File
 	pixels       []byte
 	buffer       []byte
+	scaledRow    []byte
 	LineLength   int
 	VW, VH       int
 	xStarts      []int
@@ -82,6 +83,7 @@ func InitDisplay(title string, vw, vh int) *Display {
 		file:         f,
 		pixels:       data,
 		buffer:       make([]byte, vw*vh*4),
+		scaledRow:    make([]byte, sw*4),
 		LineLength:   lineLen,
 		VW:           vw,
 		VH:           vh,
@@ -160,30 +162,34 @@ func (d *Display) scaleVirtualBuffer() {
 		yStart := d.yStarts[vy]
 		yEnd := d.yEnds[vy]
 
-		for vx := 0; vx < d.VW; vx++ {
-			xStart := d.xStarts[vx]
-			xEnd := d.xEnds[vx]
+		d.buildScaledRow(vy)
 
-			srcOffset := (vy*d.VW + vx) * 4
-			r := d.buffer[srcOffset]
-			g := d.buffer[srcOffset+1]
-			b := d.buffer[srcOffset+2]
-			a := d.buffer[srcOffset+3]
+		for py := yStart; py < yEnd; py++ {
+			rowOffset := py * d.LineLength
+			copy(d.pixels[rowOffset:rowOffset+len(d.scaledRow)], d.scaledRow)
+		}
+	}
+}
 
-			for py := yStart; py < yEnd; py++ {
-				rowOffset := py * d.LineLength
-				for px := xStart; px < xEnd; px++ {
-					dstOffset := rowOffset + px*4
-					if dstOffset+3 >= len(d.pixels) {
-						continue
-					}
+func (d *Display) buildScaledRow(vy int) {
+	srcRowOffset := vy * d.VW * 4
 
-					d.pixels[dstOffset] = b
-					d.pixels[dstOffset+1] = g
-					d.pixels[dstOffset+2] = r
-					d.pixels[dstOffset+3] = a
-				}
-			}
+	for vx := 0; vx < d.VW; vx++ {
+		xStart := d.xStarts[vx]
+		xEnd := d.xEnds[vx]
+
+		srcOffset := srcRowOffset + vx*4
+		r := d.buffer[srcOffset]
+		g := d.buffer[srcOffset+1]
+		b := d.buffer[srcOffset+2]
+		a := d.buffer[srcOffset+3]
+
+		for px := xStart; px < xEnd; px++ {
+			dstOffset := px * 4
+			d.scaledRow[dstOffset] = b
+			d.scaledRow[dstOffset+1] = g
+			d.scaledRow[dstOffset+2] = r
+			d.scaledRow[dstOffset+3] = a
 		}
 	}
 }
