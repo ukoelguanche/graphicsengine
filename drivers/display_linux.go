@@ -34,6 +34,10 @@ type Display struct {
 	buffer       []byte
 	LineLength   int
 	VW, VH       int
+	xStarts      []int
+	xEnds        []int
+	yStarts      []int
+	yEnds        []int
 	transformers []PixelTransformer
 }
 
@@ -81,6 +85,10 @@ func InitDisplay(title string, vw, vh int) *Display {
 		LineLength:   lineLen,
 		VW:           vw,
 		VH:           vh,
+		xStarts:      buildScaleStarts(vw, sw),
+		xEnds:        buildScaleEnds(vw, sw),
+		yStarts:      buildScaleStarts(vh, sh),
+		yEnds:        buildScaleEnds(vh, sh),
 		transformers: make([]PixelTransformer, 0),
 	}
 }
@@ -149,12 +157,12 @@ func (d *Display) Close() {
 
 func (d *Display) scaleVirtualBuffer() {
 	for vy := 0; vy < d.VH; vy++ {
-		yStart := vy * sh / d.VH
-		yEnd := (vy + 1) * sh / d.VH
+		yStart := d.yStarts[vy]
+		yEnd := d.yEnds[vy]
 
 		for vx := 0; vx < d.VW; vx++ {
-			xStart := vx * sw / d.VW
-			xEnd := (vx + 1) * sw / d.VW
+			xStart := d.xStarts[vx]
+			xEnd := d.xEnds[vx]
 
 			srcOffset := (vy*d.VW + vx) * 4
 			r := d.buffer[srcOffset]
@@ -178,4 +186,20 @@ func (d *Display) scaleVirtualBuffer() {
 			}
 		}
 	}
+}
+
+func buildScaleStarts(virtualSize, realSize int) []int {
+	starts := make([]int, virtualSize)
+	for i := 0; i < virtualSize; i++ {
+		starts[i] = i * realSize / virtualSize
+	}
+	return starts
+}
+
+func buildScaleEnds(virtualSize, realSize int) []int {
+	ends := make([]int, virtualSize)
+	for i := 0; i < virtualSize; i++ {
+		ends[i] = (i + 1) * realSize / virtualSize
+	}
+	return ends
 }
