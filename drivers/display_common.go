@@ -8,6 +8,12 @@ type PixelTransformer interface {
 	Transform(pixels []byte)
 }
 
+type ManagedPixelTransformer interface {
+	PixelTransformer
+	IsFinished() bool
+	Complete()
+}
+
 type SpriteColorProcessor interface {
 	ProcessColor(color []byte) []byte
 }
@@ -117,6 +123,19 @@ func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position 
 
 func (d *Display) AddTransformer(t PixelTransformer) {
 	d.transformers = append(d.transformers, t)
+}
+
+func (d *Display) RemoveTransformer(t PixelTransformer) {
+	for i, transformer := range d.transformers {
+		if transformer != t {
+			continue
+		}
+
+		copy(d.transformers[i:], d.transformers[i+1:])
+		d.transformers[len(d.transformers)-1] = nil
+		d.transformers = d.transformers[:len(d.transformers)-1]
+		return
+	}
 }
 
 func applicableProcessors(sprite *core.Sprite) []SpriteColorProcessor {

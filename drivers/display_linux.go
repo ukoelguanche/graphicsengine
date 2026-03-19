@@ -124,10 +124,7 @@ func (d *Display) Clear() {
 }
 
 func (d *Display) Present() {
-	for _, transformer := range d.transformers {
-		transformer.Transform(d.buffer)
-	}
-
+	d.applyTransformers(d.buffer)
 	d.scaleVirtualBuffer()
 }
 
