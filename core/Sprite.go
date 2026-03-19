@@ -1,12 +1,12 @@
 package core
 
 type Sprite struct {
-	Name         string
-	BitmapSource string `json:"BitmapSource"`
-	Bitmap       *Bitmap
+	Name           string
+	BitmapSource   string `json:"BitmapSource"`
+	Bitmap         *Bitmap
 	PaletteBitmaps []*Bitmap
-	Frames       []Frame             `json:"Frames"`
-	Sequences    map[string]Sequence `json:"Sequences"`
+	Frames         []Frame             `json:"Frames"`
+	Sequences      map[string]Sequence `json:"Sequences"`
 	// ToDO: Remove this property as it is intended to be used for texts, not for sprites
 	Characters  map[string]int `json:"Characters"`
 	PaletteSwap PaletteSwap    `json:"PaletteSwap"`
@@ -40,5 +40,12 @@ func (s *Sprite) CurrentSwapPaletteIndex() int {
 	if s.PaletteSwap.TargetPalette == nil || len(*s.PaletteSwap.TargetPalette) == 0 {
 		return 0
 	}
-	return int(float32(len(*s.PaletteSwap.TargetPalette)) * s.CurrentPalleteSwapPosition)
+
+	paletteLen := len(*s.PaletteSwap.TargetPalette)
+	index := int(float32(paletteLen) * s.CurrentPalleteSwapPosition)
+	if index >= paletteLen {
+		return paletteLen - 1
+	}
+
+	return index
 }
