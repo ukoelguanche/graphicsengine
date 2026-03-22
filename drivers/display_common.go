@@ -94,14 +94,12 @@ func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position 
 	processors := applicableProcessors(sprite)
 
 	for sy := 0; sy < height; sy++ {
-		srcRowOffset := ((srcY0 + sy) * int(bitmap.W) * 4) + srcX0*4
+		srcRowOffset := (srcY0 + sy) * int(bitmap.W)
 		dstY := drawY + sy
 
 		for sx := 0; sx < width; sx++ {
-			srcOff := srcRowOffset + sx*4
-			color := bitmap.Pixels[srcOff : srcOff+4]
-
-			if color[3] < 128 {
+			color, ok := bitmapColorAt(bitmap, srcRowOffset+srcX0+sx)
+			if !ok {
 				continue
 			}
 
@@ -119,6 +117,30 @@ func (d *Display) DrawSpriteRect(sprite *core.Sprite, rect core.Frame, position 
 		sprite.CurrentPalleteSwapPosition = 0
 	}
 	sprite.CurrentPalleteSwapPosition += sprite.CurrentPalleteSwapOffset
+}
+
+func bitmapColorAt(bitmap *core.Bitmap, pixelIndex int) ([]byte, bool) {
+	if len(bitmap.IndexedPixels) > 0 && bitmap.Palette != nil {
+		paletteIndex := bitmap.IndexedPixels[pixelIndex]
+		if int(paletteIndex) >= len(*bitmap.Palette) {
+			return nil, false
+		}
+
+		color := (*bitmap.Palette)[paletteIndex]
+		if color.A < 128 {
+			return nil, false
+		}
+
+		return []byte{color.R, color.G, color.B, color.A}, true
+	}
+
+	offset := pixelIndex * 4
+	color := bitmap.Pixels[offset : offset+4]
+	if color[3] < 128 {
+		return nil, false
+	}
+
+	return color, true
 }
 
 func (d *Display) AddTransformer(t PixelTransformer) {
